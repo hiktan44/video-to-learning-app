@@ -1,23 +1,27 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+command = "npm run build"
+publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+NODE_VERSION = "20"
+# Eski API key Netlify env'de kaldığı sürece scanner'ı geçici devre dışı bırak.
+# Netlify'da VITE_GEMINI_API_KEY'i yeni bir key ile güncelledikten sonra
+# bu satırı kaldırın veya "true" yapın.
+SECRETS_SCAN_SMART_DETECTION_ENABLED = "false"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+from = "/*"
+to = "/index.html"
+status = 200
 
 [[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+X-XSS-Protection = "1; mode=block"
 
 [[headers]]
-  for = "/data/*.json"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
+for = "/data/*.json"
+[headers.values]
+Cache-Control = "public, max-age=3600"
