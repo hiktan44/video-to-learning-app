@@ -163,6 +163,36 @@ export const DASHBOARD_PROMPT = `Videodan dashboard/kontrol paneli oluştur.
 
 Düz metin olarak yaz, TÜRKÇE.`;
 
+export const WEB_DESIGNER_PROMPT = `Sen profesyonel bir web tasarım asistanısın. Videoyu analiz et ve içeriğe uygun, tam işlevsel bir AI Web Tasarım Asistanı uygulaması şartnamesi oluştur.
+
+UYGULAMA ADI: AI Web Tasarım Asistanı
+
+UYGULAMA AMACI:
+Kullanıcıların metin tabanlı komutlar ve görsel referanslar kullanarak modern, responsive web sitesi bölümleri oluşturmasını sağlayan basit ve işlevsel bir web uygulamasıdır.
+
+ANA ÖZELLİKLER:
+1. AI Destekli Bölüm Oluşturma: Prompt ve görsel referanslara göre web sitesi bölümleri oluştur
+2. Görsel Referans Yükleme: Kullanıcı ekran görüntüsü/resim yükleyebilir
+3. Gerçek Zamanlı Önizleme: Oluşturulan bölümün anında responsive önizlemesi
+4. HTML/CSS/JS Dışa Aktarma: Tek HTML dosyası olarak export
+5. Ön Tanımlı Şablonlar: Hero, özellikler, hakkımızda vb. bölüm şablonları
+
+KULLANICI ARAYÜZÜ:
+Modern, minimalist, koyu tema ağırlıklı SPA. Sol panel: prompt girişi, sağ panel: önizleme. Üst toolbar: ayarlar ve export. Responsive.
+
+İNTERAKTİF ELEMANLAR:
+- Büyük prompt textarea
+- "Oluştur" butonu (gradient, belirgin)
+- "Görsel Yükle" butonu (drag-drop destekli)
+- "Önizle" butonu
+- "Kodu İndir" butonu
+- Bölüm şablonları dropdown
+- Koyu/Açık tema toggle
+
+TASARIM: Modern, responsive, tek HTML dosyası, koyu tema, glassmorphism efektler.
+
+Düz metin olarak yaz, TÜRKÇE.`;
+
 // Prompt şablonları için tip tanımı
 export interface PromptTemplate {
   id: string;
@@ -235,5 +265,12 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     description: 'Organizasyon şeması, sistem mimarisi',
     prompt: INTERACTIVE_DIAGRAM_PROMPT,
     icon: '🎨',
+  },
+  {
+    id: 'web-designer',
+    name: 'AI Web Tasarım Asistanı',
+    description: 'Web sitesi bölümleri oluşturan asistan arayüzü',
+    prompt: WEB_DESIGNER_PROMPT,
+    icon: '🖥️',
   },
 ];

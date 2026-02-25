@@ -7,23 +7,24 @@
 import Editor from '@monaco-editor/react';
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
-import {Tab, TabList, TabPanel, Tabs} from 'react-tabs';
+import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 
 // import 'react-tabs/style/react-tabs.css'
 
-import {parseHTML, parseJSON} from '@/lib/parse';
+import { parseHTML, parseJSON } from '@/lib/parse';
 import {
   CODE_REGION_CLOSER,
   CODE_REGION_OPENER,
   SPEC_ADDENDUM,
   SPEC_FROM_VIDEO_PROMPT,
 } from '@/lib/prompts';
-import {generateText} from '@/lib/textGeneration';
-import {generateVideoFromSpec} from '@/lib/videoGeneration';
+import { generateText } from '@/lib/textGeneration';
+import { generateVideoFromSpec } from '@/lib/videoGeneration';
 import VideoPlayerModal from './VideoPlayerModal';
 
 interface ContentContainerProps {
@@ -58,6 +59,7 @@ export default forwardRef(function ContentContainer(
   const [isEditingSpec, setIsEditingSpec] = useState(false);
   const [editedSpec, setEditedSpec] = useState('');
   const [activeTabIndex, setActiveTabIndex] = useState(0); // 0: Render, 1: Code, 2: Spec
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const [isVideoGenerating, setIsVideoGenerating] = useState(false);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(
@@ -77,7 +79,7 @@ export default forwardRef(function ContentContainer(
   const generateSpecFromVideo = async (videoUrl: string): Promise<string> => {
     // Seçilen prompt'u kullan, yoksa default kullan
     const promptToUse = selectedPrompt || SPEC_FROM_VIDEO_PROMPT;
-    
+
     const specResponse = await generateText({
       modelName: 'gemini-2.5-flash',
       prompt: promptToUse,
@@ -86,7 +88,7 @@ export default forwardRef(function ContentContainer(
 
     // AI artık düz metin döndürüyor, JSON parse etmeye gerek yok
     let spec = specResponse.trim();
-    
+
     // Markdown code block varsa temizle
     spec = spec.replace(/```json\n?/gi, '').replace(/```\n?$/g, '');
 
@@ -109,11 +111,11 @@ export default forwardRef(function ContentContainer(
         CODE_REGION_OPENER,
         CODE_REGION_CLOSER,
       );
-      
+
       if (!code || code.trim().length === 0) {
         throw new Error('AI boş bir HTML yanıtı üretti. Lütfen tekrar deneyin.');
       }
-      
+
       return code;
     } catch (error) {
       if (error instanceof Error) {
@@ -239,6 +241,50 @@ export default forwardRef(function ContentContainer(
     setEditedSpec('');
   };
 
+  const handleCopySpec = useCallback(async () => {
+    if (!spec) return;
+    try {
+      await navigator.clipboard.writeText(spec);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch {
+      // Fallback: textarea yöntemi
+      const ta = document.createElement('textarea');
+      ta.value = spec;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }
+  }, [spec]);
+
+  const handleDownloadPDF = useCallback(() => {
+    if (!spec) return;
+    // Print-to-PDF: tarayıcı native print dialog
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html lang="tr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Uygulama Özellikleri</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.8; padding: 40px; max-width: 800px; margin: 0 auto; color: #222; }
+          pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 14px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body><pre>${spec.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body>
+      </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); printWin.close(); }, 300);
+  }, [spec]);
+
   const handleGenerateVideo = async () => {
     if (!spec || isVideoGenerating) return;
 
@@ -313,15 +359,15 @@ export default forwardRef(function ContentContainer(
         }}>
         error
       </div>
-      <h3 style={{fontSize: '1.5rem', marginBottom: '0.5rem'}}>Hata Oluştu</h3>
-      <p style={{whiteSpace: 'pre-wrap', maxWidth: '600px'}}>{error || 'Bir şeyler yanlış gitti'}</p>
+      <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Hata Oluştu</h3>
+      <p style={{ whiteSpace: 'pre-wrap', maxWidth: '600px' }}>{error || 'Bir şeyler yanlış gitti'}</p>
       {!contentBasis.startsWith('http://') &&
-      !contentBasis.startsWith('https://') ? (
-        <p style={{marginTop: '0.5rem'}}>
+        !contentBasis.startsWith('https://') ? (
+        <p style={{ marginTop: '0.5rem' }}>
           (<strong>NOT:</strong> URL http:// veya https:// ile başlamalıdır)
         </p>
       ) : (
-        <p style={{marginTop: '1rem', fontSize: '0.9rem', color: '#666'}}>
+        <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
           Lütfen tekrar deneyin veya farklı bir video seçin.
         </p>
       )}
@@ -348,7 +394,7 @@ export default forwardRef(function ContentContainer(
   };
 
   // Base style for button container in spec tab
-  const buttonContainerStyle = {padding: '0 1rem 1rem'};
+  const buttonContainerStyle = { padding: '0 1rem 1rem' };
 
   const renderSpecContent = () => {
     if (loadingState === 'error') {
@@ -379,7 +425,7 @@ export default forwardRef(function ContentContainer(
 
     if (isEditingSpec) {
       return (
-        <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Editor
             height="100%"
             defaultLanguage="text"
@@ -387,13 +433,13 @@ export default forwardRef(function ContentContainer(
             onChange={(value) => setEditedSpec(value || '')}
             theme="light"
             options={{
-              minimap: {enabled: false},
+              minimap: { enabled: false },
               fontSize: 14,
               wordWrap: 'on',
               lineNumbers: 'off',
             }}
           />
-          <div style={{display: 'flex', gap: '6px', ...buttonContainerStyle}}>
+          <div style={{ display: 'flex', gap: '6px', ...buttonContainerStyle }}>
             <button onClick={handleSpecSave} className="button-primary">
               Kaydet ve kodu yeniden oluştur
             </button>
@@ -406,7 +452,7 @@ export default forwardRef(function ContentContainer(
     }
 
     return (
-      <div style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div
           style={{
             whiteSpace: 'pre-wrap',
@@ -422,38 +468,38 @@ export default forwardRef(function ContentContainer(
           }}>
           {spec}
         </div>
-        <div style={{...buttonContainerStyle, display: 'flex', gap: '10px'}}>
+        <div style={{ ...buttonContainerStyle, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
-            style={{display: 'flex', alignItems: 'center', gap: '5px'}}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
             onClick={handleSpecEdit}
             className="button-primary">
             Düzenle{' '}
-            <span
-              style={{
-                fontFamily: 'var(--font-symbols)',
-                fontSize: '1.125rem',
-              }}>
+            <span style={{ fontFamily: 'var(--font-symbols)', fontSize: '1.125rem' }}>
               edit
             </span>
           </button>
-          {/* Video oluşturma özelliği - Veo 2.0 henüz hazır değil, geçici olarak gizlendi */}
-          {false && (
-            <button
-              onClick={handleGenerateVideo}
-              disabled={isVideoGenerating || loadingState !== 'ready'}
-              className="button-secondary"
-              title="Video oluşturma özelliği Veo 2.0 modeli gerektirir (şu an beta aşamasında)"
-              style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-              <span
-                style={{
-                  fontFamily: 'var(--font-symbols)',
-                  fontSize: '1.125rem',
-                }}>
-                videocam
-              </span>
-              {isVideoGenerating ? 'Oluşturuluyor...' : 'Video Oluştur (Beta)'}
-            </button>
-          )}
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+            onClick={handleCopySpec}
+            disabled={!spec || loadingState !== 'ready'}
+            className="button-secondary"
+            title="Tüm metni panoya kopyala">
+            <span style={{ fontFamily: 'var(--font-symbols)', fontSize: '1.125rem' }}>
+              {copySuccess ? 'check' : 'content_copy'}
+            </span>
+            {copySuccess ? 'Kopyalandı!' : 'Metni Kopyala'}
+          </button>
+          <button
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+            onClick={handleDownloadPDF}
+            disabled={!spec || loadingState !== 'ready'}
+            className="button-secondary"
+            title="PDF olarak indir (tarayıcı print dialog)">
+            <span style={{ fontFamily: 'var(--font-symbols)', fontSize: '1.125rem' }}>
+              picture_as_pdf
+            </span>
+            PDF İndir
+          </button>
         </div>
       </div>
     );
@@ -513,15 +559,15 @@ export default forwardRef(function ContentContainer(
           </Tab>
         </TabList>
 
-        <div style={{flex: 1, overflow: 'hidden'}}>
-          <TabPanel style={{height: '100%', padding: '0'}}>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <TabPanel style={{ height: '100%', padding: '0' }}>
             {loadingState === 'error' ? (
               renderErrorState()
             ) : loadingState !== 'ready' ? (
               renderLoadingSpinner()
             ) : (
               <div
-                style={{height: '100%', width: '100%', position: 'relative'}}>
+                style={{ height: '100%', width: '100%', position: 'relative' }}>
                 <iframe
                   key={iframeKey}
                   srcDoc={code}
@@ -537,13 +583,13 @@ export default forwardRef(function ContentContainer(
             )}
           </TabPanel>
 
-          <TabPanel style={{height: '100%', padding: '0'}}>
+          <TabPanel style={{ height: '100%', padding: '0' }}>
             {loadingState === 'error' ? (
               renderErrorState()
             ) : loadingState !== 'ready' ? (
               renderLoadingSpinner()
             ) : (
-              <div style={{height: '100%', position: 'relative'}}>
+              <div style={{ height: '100%', position: 'relative' }}>
                 <Editor
                   height="100%"
                   defaultLanguage="html"
@@ -551,7 +597,7 @@ export default forwardRef(function ContentContainer(
                   onChange={handleCodeChange}
                   theme="vs-dark"
                   options={{
-                    minimap: {enabled: false},
+                    minimap: { enabled: false },
                     fontSize: 14,
                     wordWrap: 'on',
                     formatOnPaste: true,
